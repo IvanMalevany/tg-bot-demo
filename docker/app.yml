@@ -1,0 +1,17 @@
+version: '3.5'
+services:
+  tg-bot:
+    image: ${TARGET_IMAGE_NAME}
+    restart: unless-stopped
+    env_file: ../.env
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.${TARGET_ROUTER}.rule=Host(`$TARGET_DOMAIN`)"
+      - "traefik.http.routers.${TARGET_ROUTER}.entrypoints=http"
+    networks:
+      - proxy-gateway
+
+networks:
+  proxy-gateway:
+    name: ${TARGET_DOCKER_NETWORK}
+    external: true

@@ -1,0 +1,45 @@
+version: '3.5'
+
+services:
+  postgres:
+    image: postgres:alpine3.18
+    hostname: postgres
+    environment:
+      - POSTGRES_DB=$TARGET_DB_NAME
+      - POSTGRES_USER=$TARGET_DB_USER
+      - POSTGRES_PASSWORD=$TARGET_DB_USER_PASSWORD
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "sh -c 'pg_isready -U $TARGET_DB_USER -d $TARGET_DB_NAME'"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    networks:
+      - proxy-gateway
+
+  pgadmin:
+    image: dpage/pgadmin4
+    depends_on:
+      - postgres
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=${TARGET_DB_ADMIN_NAME}
+      - PGADMIN_DEFAULT_PASSWORD=${TARGET_DM_ADMIN_PASSWORD}
+      - SCRIPT_NAME=/pgadmin
+      - PGADMIN_CONFIG_ENHANCED_COOKIE_PROTECTION=False
+    restart: unless-stopped
+    networks:
+      - proxy-gateway
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.pgadmin-${TARGET_ROUTER}.entrypoints=http"
+      - "traefik.http.routers.pgadmin-${TARGET_ROUTER}.rule=(Host(`${TARGET_DOMAIN}`) && PathPrefix(`/pgadmin`))"
+
+volumes:
+  postgres-data:
+
+networks:
+  proxy-gateway:
+    name: ${TARGET_DOCKER_NETWORK}
+    external: true
